@@ -1,0 +1,45 @@
+include ../config.mak
+include platform-config.mak
+
+include $(SRCS_DIR)/scripts/Makefile.misc
+include $(SRCS_DIR)/scripts/Makefile.rules
+include $(SRCS_DIR)/scripts/Makefile.findobjs
+include $(PLATFORM_CONF)
+
+CFLAGS += $(SYSTEMC_CFLAGS)
+LDFLAGS += $(SYSTEMC_LIBS)
+
+.PHONY: all
+all: $(PLATFORM)
+	@true # Avoid number of "Nothing to be done for 'all'"
+
+$(call set-vpath,$(REPOS_SRCS))
+
+obj-y = $(PLATFORM_DIR)/ src/
+ui-obj-y = src/ui/
+
+dummy := $(call find-objs,$(REPOS_SRCS),obj-y ui-obj-y)
+
+obj = $(obj-y) $(ui-obj-y)
+
+obj-dirs = $(sort $(dir $(obj)))
+obj-deps = $(patsubst %.o,%.d,$(obj))
+
+$(PLATFORM): $(obj)
+	$(call LINK,$(obj))
+
+$(obj): | $(obj-dirs)
+
+$(obj-dirs):
+	$(Q)mkdir -p $@
+
+
+.PHONY: clean realclean distclean
+
+clean:
+	$(call q,rm -f $(PLATFORM) $(obj) $(obj-deps),"CLEAN",$(PLATFORM))
+	$(Q)rm -f $(notdir $(MODULES))
+
+realclean: clean
+
+distclean: realclean

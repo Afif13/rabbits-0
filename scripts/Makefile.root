@@ -1,0 +1,52 @@
+include config.mak
+include $(SRCS_DIR)/scripts/Makefile.misc
+include $(SRCS_DIR)/scripts/Makefile.rules
+include $(SRCS_DIR)/scripts/Makefile.findobjs
+
+
+.PHONY: all iss platforms
+
+all: iss platforms
+
+
+$(call set-vpath,$(SRCS_DIR))
+
+PLATFORMS_BIN=$(foreach p,$(PLATFORMS_LIST),$p/$p)
+
+
+
+iss: $(ISS_LIST)
+platforms: $(PLATFORMS_LIST)
+
+
+.PHONY: $(ISS_LIST) $(PLATFORMS_LIST)
+
+$(ISS_LIST) $(PLATFORMS_LIST):
+	$(Q)$(MAKE) -C $@
+
+
+.PHONY: clean realclean distclean modules
+
+modules:
+	$(Q)$(foreach p,$(PLATFORMS_LIST),$(MAKE) -C $p modules;)
+
+clean-iss:
+	$(Q)$(foreach iss,$(ISS_LIST),$(MAKE) -C $(iss) clean;)
+
+realclean-iss:
+	$(Q)$(foreach iss,$(ISS_LIST),$(MAKE) -C $(iss) realclean;)
+
+distclean-iss:
+	$(Q)$(foreach iss,$(ISS_LIST),$(MAKE) -C $(iss) distclean;)
+
+clean: clean-iss
+	$(Q)$(foreach p,$(PLATFORMS_LIST),$(MAKE) -C $p clean;)
+
+realclean: realclean-iss
+	$(Q)$(foreach p,$(PLATFORMS_LIST),$(MAKE) -C $p realclean;)
+
+distclean: distclean-iss
+	$(call q,rm -rf $(PLATFORMS_LIST) config.h config.mak config-tmp config.log Makefile,"DISTCLEAN")
+
+clang_complete:
+	@echo $(CFLAGS) | sed -e 's/ /\n/g'

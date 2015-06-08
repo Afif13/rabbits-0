@@ -1,0 +1,6 @@
+obj-y += qemu_lib_wrapper.o
+obj-y += cpu/ dev/
+
+# Path to <sc_qemu.h> in QEMU subdir
+qemu_lib_wrapper.o-cflags = $(SC_QEMU_CFLAGS)
+qemu_lib_wrapper.o-libs = -ldl

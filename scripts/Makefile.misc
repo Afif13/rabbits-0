@@ -1,0 +1,15 @@
+# No implicit between us
+MAKEFLAGS=-rR
+
+# Verbose make
+V ?= 0
+
+# Quiet commands
+ifeq ($(V),0)
+	q=@$(if $2, printf "  %s\r\t\t%s\n" "$2" "$3";) ($1)>/dev/null
+	Q=@
+	MAKEFLAGS+=--no-print-directory
+else
+	q=$1
+	Q=
+endif

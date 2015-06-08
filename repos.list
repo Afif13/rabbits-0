@@ -1,0 +1,5 @@
+# List of repositories containing components and platforms
+
+REPOS[0]="./"
+
+# vim: ft=sh

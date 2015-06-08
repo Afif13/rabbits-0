@@ -1,0 +1,31 @@
+#!/bin/bash
+# GTK helper script sourced by configure
+
+find_gtk() {
+  local pkg=
+  local x11_pkg=
+
+  gtk_found="no"
+  gtk_cflags=
+  gtk_libs=
+
+  if has $pkg_config ; then
+    for abi in "2.0" "3.0"; do
+      pkg="gtk+-$abi"
+      x11_pkg="gtk+-x11-$abi"
+      if $pkg_config --exists "$pkg"; then
+        gtk_found="yes"
+        gtk_cflags=$($pkg_config --cflags "$pkg")
+        gtk_libs=$($pkg_config --libs "$pkg")
+        if $pkg_config --exists "$x11_pkg"; then
+          gtk_libs="$gtk_libs -lX11"
+        fi
+        return 0
+      fi
+    done
+  fi
+
+  return 1
+}
+
+# vim: ts=2 sw=2 sts=0 expandtab

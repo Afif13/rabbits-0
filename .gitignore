@@ -1,0 +1,11 @@
+*.o
+*.d
+
+Makefile
+config-tmp
+config.mak
+config.log
+config.h
+
+# Platforms
+/raspberry

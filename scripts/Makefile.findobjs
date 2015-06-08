@@ -1,0 +1,97 @@
+.PHONY: modules
+modules:
+
+%.mod.clean:
+	$(Q)rm -f $($*.mod-objs)
+
+define trace
+	$(if , $(shell echo $(req)$1 >>/tmp/piou))
+endef
+
+# $(call swap-var v0, v1)
+define swap-var
+	$(eval swap-$1-$2 := $($1))
+	$(eval $1 := $($2))
+	$(eval $2 := $(swap-$1-$2))
+	$(eval swap-$1-$2 := )
+endef
+
+# $(call save-var var)
+define save-var
+	$(call trace,saving $1)
+	$(eval saved-var-$1 := $($1))
+	$(eval $1 := )
+endef
+
+# $(call restore-and-merge-var var)
+define restore-and-merge-var
+	$(call trace,restoring $1)
+	$(eval $1 += $(saved-var-$1))
+	$(eval saved-var-$1 := )
+endef
+
+# $(call prepend-path var, path)
+define prepend-path
+	$(call trace,adding $2 to elements in $1)
+	$(foreach o, $($1),
+		$(if $($o-cflags),
+			$(eval $2$o-cflags := $($o-cflags)))
+		$(if $($o-libs),
+			$(eval $2$o-libs := $($o-libs)))
+		$(if $($o-objs),
+			$(eval $2$o-objs := $($o-objs))))
+	$(eval $1 := $(addprefix $2,$($1)))
+endef
+
+# $(call find-objs-recursive, src-dir, var)
+define find-objs-recursive
+	$(eval req := $(req).)
+	$(call trace,processing $2: $($2) in $1)
+	$(eval dirs := $(sort $(filter %/,$($2))))
+	$(eval $2 := $(filter-out %/,$($2)))
+	$(call trace,filtered $2: $($2))
+	$(call trace,dir list: $(dirs))
+	$(foreach d,$(dirs),
+		$(call trace,d is $d)
+		$(call save-var,$2)
+		$(call trace,including $1/$d/Makefile.objs)
+		$(eval -include $1/$d/Makefile.objs)
+		$(call prepend-path,$2,$d)
+		$(call restore-and-merge-var,$2)
+		$(call trace,new $2: $($2))
+		$(call find-objs-recursive,$1,$2))
+
+	$(call trace,bye)
+	$(eval req := $(patsubst .%,%,$(req)))
+endef
+
+# $(call find-objs, vars)
+define find-objs
+	$(call trace, ============)
+	$(call trace, begin find-objs $1, $2)
+	$(foreach p,$1,
+		$(foreach v,$2,
+			$(eval $p/$v := $($v))
+			$(call find-objs-recursive,$p,$v)
+			$(call trace,including $(addsuffix *.d, $(sort $(dir $($v)))))
+			$(eval -include $(addsuffix *.d, $(sort $(dir $($v)))))
+
+			$(foreach m,$(filter %.mod,$($v)),
+				$(if $($m-objs),
+					$(call trace,module $m)
+					$(call prepend-path,$m-objs,$(dir $m))
+					$(call trace,adding $(m::%.mod=%.so) to modules)
+					$(eval modules: $(m:%.mod=%.so))
+					$(eval MODULES += $(m:%.mod=%.so))
+					$(eval clean: $(m).clean)
+					$(eval $(m:%.mod=%.so): $($m-objs)),
+
+					$(error No $m-objs variable for module $m)))
+			$(eval $v := $(patsubst %.mod,%.so,$($v)))
+			$(call swap-var,$v,$p/$v)))
+	$(foreach v,$2,
+		$(eval $v := )
+		$(foreach p,$1,
+			$(eval $v += $($p/$v))
+			$(eval $p/$v := )))
+endef

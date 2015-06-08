@@ -1,0 +1,3 @@
+obj-y = arm.o
+
+arm.o-cflags = $(SC_QEMU_CFLAGS)

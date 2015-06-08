@@ -1,0 +1,51 @@
+#!/bin/bash
+# SystemC helper script sourced by configure
+
+find_systemc() {
+  local prefix
+  local libdir
+  systemc_found="no"
+  systemc_cflags=
+  systemc_libs=
+  systemc_libdir=
+
+  # SystemC prefix has been specified on command line
+  if test -n "${systemc_prefix+xxx}"; then
+    prefix="$systemc_prefix"
+    # Sometimes, the SYSTEMC env variable is used to specify the prefix
+  elif test -n "${SYSTEMC+xxx}"; then
+    systemc_prefix="$SYSTEMC"
+    prefix="$SYSTEMC"
+  fi
+
+  # If we have a prefix, we try with it first
+  case $arch in
+    "i386") libdir=lib-linux;;
+    "x86_64") libdir=lib-linux64;;
+  esac
+
+  if test -e "$prefix"/$libdir/libsystemc.so -a \
+    -e "$prefix"/include/systemc; then
+  # We'll say we have a valid installation here...
+  systemc_found="yes"
+  systemc_cflags="-I$prefix/include"
+  systemc_libs="-L$prefix/$libdir -lsystemc"
+  systemc_libdir=$prefix/$libdir
+
+  return 0
+fi
+
+# Finally, the easy, safe and standard way, try with pkg-config
+if has $pkg_config ; then
+  if $pkg_config --exists "systemc" ; then
+    systemc_found="yes"
+    systemc_cflags=$($pkg_config --cflags "systemc")
+    systemc_libs=$($pkg_config --libs "systemc")
+    return 0
+  fi
+fi
+
+return 1
+}
+
+# vim: ts=2 sw=2 sts=0 expandtab

@@ -1,0 +1,250 @@
+#!/bin/bash
+#
+# Rabbits configure script
+#
+
+
+# Unset some variables known to interfere with behavior of common tools,
+# just as autoconf does.
+CLICOLOR_FORCE= GREP_OPTIONS=
+unset CLICOLOR_FORCE GREP_OPTIONS
+
+# ===============
+# Log file
+CONFIG_LOG=config.log
+rm -f "$CONFIG_LOG"
+# ===============
+
+# ===============
+# Temporary files
+CONF_TMPDIR=config-tmp
+
+rm -rf "${CONF_TMPDIR}"
+mkdir -p "${CONF_TMPDIR}"
+if [ $? -ne 0 ]; then
+    log_error "Failed to create temporary directory"
+    exit 1
+fi
+
+TMP_C="$CONF_TMPDIR/tmp.c"
+TMP_O="$CONF_TMPDIR/tmp.o"
+# ==============
+
+
+usage() {
+	cat << EOF
+Usage: configure [options]
+
+Standard options:
+  --help                          print this message
+  --prefix=PREFIX                 install in PREFIX
+  --platform-list=LIST            set platforms to be built (default: build everything)
+
+Advanced options (experts only):
+  --source-path=PATH              path of the source code [$SRCS_DIR]
+  --enable-debug                  enable common debug build options
+  --enable-werror                 enable -Werror compile flag
+  --enable-sdl-ui                 enable the SDL user interface
+  --with-systemc=PATH             specify the SystemC prefix
+  --with-qemu-src=PATH            specify the QEMU sources path [$QEMU_SRCS_DIR]
+  --with-qemu-git=URL             specify the QEMU git url to be cloned [$(qemu_clone_url)]
+  --with-sc-qemu-branch=BRANCH    specify the sc-qemu branch name inside QEMU git [$SC_QEMU_BRANCH]
+EOF
+}
+
+parse_cmd() {
+    for opt do
+        optarg=`expr "x$opt" : 'x[^=]*=\(.*\)'`
+        case "$opt" in
+          --help) print_help="yes";;
+          --with-systemc=*) systemc_prefix="$optarg";;
+          --with-qemu-src=*) QEMU_SRCS_DIR="$optarg";;
+          --with-qemu-git=*) QEMU_CLONE_URL="$optarg";;
+          --with-sc-qemu-branch=*) SC_QEMU_BRANCH="$optarg";;
+          --platform-list=*) platforms_list="$optarg";;
+
+          --enable-debug)
+            debug_flags="-g -Wall -Wextra -Wno-unused-parameter $debug_flags"
+            opt_flags=""
+            more_qemu_config_options="--enable-debug"
+            ;;
+          --disable-debug)
+            opt_flags="-O2"
+            ;;
+
+          --enable-sdl-ui)
+            CONFIG_SDL_UI="y"
+            ;;
+          --disable-sdl-ui)
+            CONFIG_SDL_UI="n"
+            ;;
+
+          --enable-werror)
+            debug_flags="-Werror $debug_flags"
+            ;;
+          --disable-werror)
+            ;;
+
+          *)
+            log_error "Unknown option $opt"
+            log_error "Try '$0 --help'"
+            exit 1;;
+        esac
+    done
+}
+
+# Variables default value
+pkg_config=pkg-config
+rabbits_install_prefix=/usr/local
+debug_flags=
+opt_flags=-O2
+more_qemu_config_options=
+CC=gcc
+CXX=g++
+LD=g++
+CFLAGS=
+CXXFLAGS=
+LDFLAGS=
+BUILD_DIR=$(pwd)
+SRCS_DIR=$(dirname "$0")
+SRCS_DIR=$(cd "$SRCS_DIR"; pwd)
+PLATFORM_CONF_DIR=platform_configs
+CONFIG_SDL_UI="y"
+QEMU_REL_DIR=iss/sc-qemu
+QEMU_SRCS_DIR="$SRCS_DIR"/"$QEMU_REL_DIR"
+QEMU_BUILD_DIR="$BUILD_DIR"/"$QEMU_REL_DIR"
+QEMU_CLONE_URL=
+SC_QEMU_BRANCH="sc-qemu"
+QEMU_CONFIG_OPTIONS="--disable-debug-tcg --disable-sparse --disable-sdl
+                     --disable-gtk --disable-vnc --disable-xen --disable-brlapi --disable-vnc-tls
+                     --disable-vnc-sasl --disable-vnc-jpeg --disable-vnc-png --disable-curses
+                     --disable-curl --disable-bluez --disable-slirp --disable-kvm --disable-user
+                     --disable-linux-user --disable-bsd-user --disable-guest-base --disable-pie
+                     --disable-uuid --disable-linux-aio --disable-attr --disable-blobs
+                     --disable-docs --disable-vhost-net --disable-spice --disable-smartcard-nss
+                     --disable-usb-redir --disable-guest-agent --disable-cap-ng --disable-libiscsi
+                     --disable-libusb --disable-quorum --audio-drv-list= --disable-werror"
+
+# Helper scripts
+source "$SRCS_DIR"/scripts/config-utils
+source "$SRCS_DIR"/scripts/config-systemc
+source "$SRCS_DIR"/scripts/config-gtk
+source "$SRCS_DIR"/scripts/config-sdl
+source "$SRCS_DIR"/scripts/config-libelf
+source "$SRCS_DIR"/scripts/config-qemu
+
+# List of repositories
+source "$SRCS_DIR"/repos.list
+
+print_log_banner $0 $@ >>$CONFIG_LOG
+
+parse_cmd $@
+
+# Usage and exit
+if test x"$print_help" = x"yes"; then
+    usage
+    exit 0
+fi
+
+guess_os
+log_info "Detected OS: $target_os"
+
+guess_arch
+log_info "Detected architecture: $arch"
+
+find_systemc
+check_yes $systemc_found "SystemC not found. Please specify the SystemC installation prefix (try '$0 --help')"
+log_info "SystemC found"
+
+find_gtk
+check_yes $gtk_found "gtk2 or gtk3 were not found. Please install the corresponding devel library"
+log_info "gtk found"
+
+find_sdl
+check_yes $sdl_found "sdl was not found. Please install the corresponding devel library"
+log_info "sdl found"
+
+find_libelf
+check_yes $libelf_found "libelf was not found. Please install the corresponding devel library"
+log_info "libelf found"
+
+plist_array=$(find_platforms | select_platforms "$platforms_list")
+
+log_info "Found platforms: $(list_platforms <<<"$plist_array")"
+log_info "Enabled platforms: $(list_enabled_platforms <<<"$plist_array")"
+log_info "Enabled iss: $(list_iss <<<"$plist_array")"
+
+find_qemu
+check_yes $qemu_found "QEMU not found or configure failed. Check log"
+
+# Compilation variables
+repos_cflags=$(generate_repos_cflags <<<"$plist_array")
+CFLAGS="$debug_flags $opt_flags $repos_cflags -I$BUILD_DIR $systemc_cflags $extra_cflags -DSC_INCLUDE_DYNAMIC_PROCESSES"
+CXXFLAGS="$debug_flags $opt_flags $repos_cflags -I$BUILD_DIR $systemc_cflags $extra_cxxflags -DSC_INCLUDE_DYNAMIC_PROCESSES"
+LDFLAGS="$debug_flags"
+
+SYSTEMC_CFLAGS="$systemc_cflags"
+SYSTEMC_LIBS="$systemc_libs"
+GTK_CFLAGS="$gtk_cflags"
+GTK_LIBS="$gtk_libs"
+SDL_CFLAGS="$sdl_cflags"
+SDL_LIBS="$sdl_libs"
+SC_QEMU_CFLAGS="$sc_qemu_cflags"
+SC_QEMU_LIBS="$sc_qemu_libs"
+
+
+PLATFORMS_LIST="$(list_enabled_platforms <<<"$plist_array")"
+REPOS_SRCS="$(list_repos_srcs)"
+
+# config.mak generation
+echo 'all:' >config.mak
+put_vars SRCS_DIR BUILD_DIR CC CFLAGS \
+    CXX CXXFLAGS LD LDFLAGS QEMU_BUILD_DIR  \
+    PLATFORMS_LIST PLATFORM_CONF_DIR  \
+    ISS_LIST GTK_CFLAGS GTK_LIBS      \
+    SYSTEMC_CFLAGS SYSTEMC_LIBS       \
+    SDL_CFLAGS SDL_LIBS CONFIG_SDL_UI \
+    SC_QEMU_CFLAGS SC_QEMU_LIBS REPOS_SRCS >>config.mak
+
+conf_h_gen CONFIG_SDL_UI >config.h
+
+# Workaround for GCC 4.4.7, __STDC_FORMAT_MACROS must be defined to use
+# inttypes.h. I don't know for other versions of GCC so this fix will need to
+# be adapted if the problem appears again.
+cat > $TMP_C << EOF
+#if __GNUC__ == 4 && __GNUC_MINOR__ == 4 && __GNUC_PATCHLEVEL__ == 7
+int main(void) { return 0; }
+#else
+#error Workaround not needed
+#endif
+EOF
+if compile_tmpc ; then
+  echo '#define __STDC_FORMAT_MACROS' >>config.h
+fi
+
+# Platform build dir generation
+while IFS='|' read p r iss sta; do
+  if [[ $sta = "enabled" ]] ; then
+    PLATFORM="$p"
+    PLATFORM_ISS_DIR="$QEMU_BUILD_DIR/\$(PLATFORM_ARCH)-softmmu"
+    PLATFORM_ISS="$PLATFORM_ISS_DIR/libqemu-system-\$(PLATFORM_ARCH).so"
+    PLATFORM_CONF="$r/$PLATFORM_CONF_DIR/${p}.mak"
+
+    mkdir -p "$p"
+    ln -sf "$SRCS_DIR"/scripts/Makefile.platform "$p/Makefile"
+    
+    put_vars PLATFORM PLATFORM_ISS_DIR PLATFORM_ISS PLATFORM_CONF >"$p"/platform-config.mak
+    echo 'LDFLAGS+=$(SC_QEMU_LIBS)' >>"$p"/platform-config.mak
+    # For strange SystemC installations
+    if test -n "$systemc_prefix"; then
+      echo "LDFLAGS+=-Wl,-rpath ${systemc_libdir}" >>"$p"/platform-config.mak
+    fi
+  fi
+done <<<"$plist_array"
+
+ln -sf "$SRCS_DIR"/scripts/Makefile.root ./Makefile
+
+log_info
+log_info "Configure done. Run 'make' to build the platforms."
+
+# vim: ts=2 sw=2 sts=0 expandtab

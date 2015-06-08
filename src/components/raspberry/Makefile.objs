@@ -1,0 +1,8 @@
+obj-$(CONFIG_RPI_UART) += uart/
+obj-$(CONFIG_RPI_TIMER) += timer/
+obj-$(CONFIG_RPI_SYSTEM_TIMER) += system_timer/
+obj-$(CONFIG_RPI_MAILBOX) += vcore/
+obj-$(CONFIG_RPI_GPIO) += gpio/
+obj-$(CONFIG_RPI_IT_CTRL) += it_ctrl/
+obj-$(CONFIG_RPI_MINIUART) += miniuart/
+obj-$(CONFIG_RPI_DMA) += dma/

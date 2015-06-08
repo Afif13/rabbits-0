@@ -1,0 +1,8 @@
+obj-$(CONFIG_ABSTRACT_NOC) += interconnect/
+obj-$(CONFIG_GENERIC_SUBSYSTEM) += generic_subsystem/
+obj-$(CONFIG_MASTER_DEVICE) += master_device/
+obj-$(CONFIG_MEMORY) += memory/
+obj-$(CONFIG_QEMU_WRAPPER) += qemu_wrapper/
+obj-$(CONFIG_SLAVE_DEVICE) += slave_device/
+obj-y += raspberry/
+obj-y += debug/

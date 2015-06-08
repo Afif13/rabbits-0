@@ -1,0 +1,2 @@
+obj-y += simu.o
+obj-y += bootloader.o

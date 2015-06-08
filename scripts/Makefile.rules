@@ -1,0 +1,26 @@
+DGFLAGS += -MMD -MP -MT $@ -MF $(*D)/$(*F).d
+
+VPATH_SUFFIXES = %.c %.cc %.cpp %.h
+set-vpath = $(foreach path,$1,$(foreach pat,$(VPATH_SUFFIXES),$(eval vpath $(pat) $(path))))
+
+extract-libs = $(strip $(foreach o,$1,$($o-libs)))
+
+%.o: %.c
+	$(call q,$(CC) $(CFLAGS) $(DGFLAGS) $($@-cflags) -c -o $@ $<,"CC",$@)
+
+%.o: %.cc
+	$(call q,$(CXX) $(CXXFLAGS) $(DGFLAGS) $($@-cflags) -c -o $@ $<,"CXX",$@)
+
+%.o: %.cpp
+	$(call q,$(CXX) $(CXXFLAGS) $(DGFLAGS) $($@-cflags) -c -o $@ $<,"CXX",$@)
+
+LINK=$(call q,$(LD) $(CXXFLAGS) $(LDFLAGS) -o $@ $1 $(call extract-libs,$1),"LD",$@)
+
+%.so: LDFLAGS += -shared -Wl,-soname,$(*F).so
+%.so: CFLAGS += -fPIC
+%.so: CXXFLAGS += -fPIC
+%.so:
+	$(call LINK,$^)
+	$(call q,cp $@ .,"CP",$(@F))
+
+# vim: ft=make

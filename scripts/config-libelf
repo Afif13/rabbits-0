@@ -1,0 +1,24 @@
+#!/bin/bash
+# libelf helper script sourced by configure
+
+find_libelf() {
+
+  cat >"$TMP_C" <<EOF
+#include <libelf.h>
+
+static Elf *elf;
+
+int main(void) { return 0; }
+EOF
+  
+  if ! compile_tmpc ; then
+    libelf_found="no"
+    return 1
+  fi
+
+  libelf_found="yes"
+  return 0
+
+}
+
+# vim: ts=2 sw=2 sts=0 expandtab

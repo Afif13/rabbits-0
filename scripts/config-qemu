@@ -1,0 +1,156 @@
+#!/bin/bash
+# QEMU helper script sourced by configure
+
+qemu_detect() {
+  [[ -d "$QEMU_SRCS_DIR" ]] || return 1
+  [[ -f "$QEMU_SRCS_DIR"/vl.c ]] || return 2
+  [[ -f "$QEMU_SRCS_DIR"/include/qemu-common.h ]] || return 2
+
+  # Check if we are on sc-qemu branch
+  [[ -d "$QEMU_SRCS_DIR"/rabbits ]] || return 3
+  [[ -f "$QEMU_SRCS_DIR"/rabbits/sc_qemu.c ]] || return 3
+
+  return 0
+}
+
+qemu_clone_url() {
+  local cur_branch remote
+
+  [[ -d .git ]] || return 1
+
+  cur_branch=$(git rev-parse --abbrev-ref HEAD) || return 1
+  remote=$(git config --get branch.${cur_branch}.remote) || return 1
+  git config --get remote.${remote}.url | sed -e 's|\(.*/\).*|\1qemu.git|'
+
+  return ${PIPESTATUS[0]}
+}
+
+qemu_clone() {
+  # If remote git path is not specified, we'll try to infer it.
+  # To infer the remote git path, we procede as follow:
+  #  - Get the remote of the current branch
+  #  - Get thu url of this remote
+  #  - Replace the suffix of this url by ``qemu.git''
+  #  - Use the ``sc-qemu'' branch when cloning
+  # If any of these steps fails, the user is own its own to clone the correct
+  # version of sc-qemu.
+
+
+  pushd "$SRCS_DIR" >/dev/null 2>&1
+
+  if [[ x${QEMU_CLONE_URL} = x ]] ; then
+    [[ -d .git ]] || return 1
+    QEMU_CLONE_URL=$(qemu_clone_url) || return 1
+    [[ x${SC_QEMU_BRANCH} = x ]] && SC_QEMU_BRANCH="sc-qemu"
+  fi
+
+  log_info "Cloning QEMU from $QEMU_CLONE_URL to $QEMU_SRCS_DIR"
+  mkdir -p "$(dirname "$QEMU_SRCS_DIR")" || return 1
+  git clone -b "$SC_QEMU_BRANCH" "$QEMU_CLONE_URL" "$QEMU_SRCS_DIR" || return 1
+
+  # If the clone path is within $SRCS_DIR, add it to
+  # $SRCS_DIR/.git/info/exclude to avoid mistakes during commits...
+  case $(readlink -m "$QEMU_SRCS_DIR") in
+    $(readlink -m "$SRCS_DIR")/*)
+      local qemu_rel_path=$(printf '%s\n' "$QEMU_SRCS_DIR" | sed -e 's|'"$SRCS_DIR"'||')
+      grep -q "$qemu_rel_path" .git/info/exclude || echo $qemu_rel_path >>.git/info/exclude
+      ;;
+  esac
+
+  popd >/dev/null 2>&1
+
+  return 0
+}
+
+qemu_configure() {
+  local failure=0
+  local qemu_args="--enable-rabbits 
+    --target-list=$(format_target_list <<<"$plist_array")
+    $QEMU_CONFIG_OPTIONS
+    $more_qemu_config_options"
+
+  mkdir -p "$QEMU_BUILD_DIR"
+  pushd "$QEMU_BUILD_DIR" >/dev/null 2>&1
+
+  log_info "Configuring QEMU with $qemu_args"
+
+  ./configure $qemu_args || failure=1
+
+  [[ $failure -ne 0 ]] && log_error "QEMU configuration failed"
+
+  popd >/dev/null 2>&1
+
+  return $failure
+}
+
+qemu_check_python_ver() {
+  local min_ver=$(( 2 * 10000 + 4 * 100 + 0 )) # 2.4.0
+  local max_ver=$(( 3 * 10000 + 0 * 100 + 0 )) # 3.0.0
+
+  local python_dec_ver=$("$1" --version 2>&1 \
+    | sed -e 's/Python \([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)/\1 * 10000 + \2 * 100 + \3/')
+  python_dec_ver=$(($python_dec_ver))
+
+  [[ $python_dec_ver -ge $min_ver ]] && [[ $python_dec_ver -lt $max_ver ]]
+}
+
+# QEMU configure requires python 2, which must be explicitly specified on some
+# distros since python refers to python3
+qemu_check_python() {
+  if [[ $# -eq 0 ]] ; then
+    if ! qemu_check_python_ver python ; then
+      qemu_check_python python2
+      return $?
+    else
+      # Nothing to do since QEMU configure will take `python' as default
+      return 0
+    fi
+  elif has "$1" ; then
+    if ! qemu_check_python_ver "$1" ; then
+      log_info "No compatible python version found. QEMU configure is likely to fail."
+      return 1
+    else
+      append_to_var more_qemu_config_options "--python=$1"
+      return 0
+    fi
+  fi
+}
+
+find_qemu() {
+  qemu_found="no"
+
+  qemu_detect
+  case $? in
+    1)
+      # QEMU not found. Try to clone it.
+      qemu_clone || return 1
+      qemu_detect || return 1
+      ;;
+    2)
+      if ! dir_is_empty "$QEMU_SRCS_DIR" ; then
+        # QEMU srcs directory exists, but does not contain QEMU...
+        log_error "$QEMU_SRCS_DIR already exists, but QEMU not found inside it."
+        return 1
+      fi
+      ;;
+    3)
+      # QEMU found but it's not sc-qemu
+      log_error "Vanilla QEMU found but I need sc-qemu to continue."
+      return 1
+      ;;
+  esac
+
+  qemu_check_python
+
+  qemu_configure || return 1
+
+  qemu_found="yes"
+
+  append_to_var ISS_LIST "$QEMU_BUILD_DIR"
+  sc_qemu_cflags="-I$QEMU_SRCS_DIR/rabbits"
+  sc_qemu_libs='-Wl,--rpath $(PLATFORM_ISS_DIR)'
+
+  return 0
+}
+
+# vim: ts=2 sw=2 sts=0 expandtab
