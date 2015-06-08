@@ -123,7 +123,11 @@ find_qemu() {
   case $? in
     1)
       # QEMU not found. Try to clone it.
-      qemu_clone || return 1
+      if ! qemu_clone ; then
+        log_error "Unable to infer sc-qemu git url. See help"
+        return 1
+      fi
+
       qemu_detect || return 1
       ;;
     2)
