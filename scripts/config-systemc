@@ -48,4 +48,11 @@ fi
 return 1
 }
 
+load_systemc() {
+  append_to_config_mak SYSTEMC_CFLAGS "$systemc_cflags"
+  append_to_config_mak SYSTEMC_LIBS   "$systemc_libs"
+}
+
+find_systemc && load_systemc
+
 # vim: ts=2 sw=2 sts=0 expandtab

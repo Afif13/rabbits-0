@@ -31,4 +31,11 @@ find_sdl() {
   return 0
 }
 
+load_sdl() {
+  append_to_config_mak SDL_CFLAGS "$sdl_cflags"
+  append_to_config_mak SDL_LIBS   "$sdl_libs"
+}
+
+find_sdl && load_sdl
+
 # vim: ts=2 sw=2 sts=0 expandtab

@@ -43,14 +43,41 @@ EOF
   compile_tmpc
 }
 
-# Print variables name and value
-put_vars() {
+
+# Append var/value pair to config.mak
+#  $1: var name
+#  $2: value
+append_to_config_mak() {
+  CONFIG_MAK_VAR+=("$1")
+  CONFIG_MAK_VAL+=("$2")
+}
+
+# Append vars name and there value to config.mak
+#  $@: vars names
+append_var_to_config_mak() {
   local value
   for v in $@; do
     eval value=\$$v
-    printf "%s=%s\n" "$v" "$value"
+    CONFIG_MAK_VAR+=("$v")
+    CONFIG_MAK_VAL+=("$value")
   done
 }
+
+# Generate the final content of config.mak
+# Reset the internal variables so another config.mak can be generated
+generate_config_mak() {
+  local last_idx=$((${#CONFIG_MAK_VAR[@]} - 1))
+
+  printf 'all:\n'
+
+  for ((i = 0; i <= last_idx; i++)); do
+    printf '%s=%s\n' "${CONFIG_MAK_VAR[i]}" "${CONFIG_MAK_VAL[i]}"
+  done
+
+  CONFIG_MAK_VAR=()
+  CONFIG_MAK_VAL=()
+}
+
 
 # Generate a config.h file
 #  Replace 'y' with '1'

@@ -28,4 +28,11 @@ find_gtk() {
   return 1
 }
 
+load_gtk() {
+  append_to_config_mak GTK_CFLAGS "$gtk_cflags"
+  append_to_config_mak GTK_LIBS   "$gtk_libs"
+}
+
+find_gtk && load_gtk
+
 # vim: ts=2 sw=2 sts=0 expandtab

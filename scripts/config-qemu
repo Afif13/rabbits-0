@@ -74,7 +74,7 @@ qemu_configure() {
 
   log_info "Configuring QEMU with $qemu_args"
 
-  ./configure $qemu_args || failure=1
+  ./configure $qemu_args >>$CONFIG_LOG || failure=1
 
   [[ $failure -ne 0 ]] && log_error "QEMU configuration failed"
 
@@ -156,5 +156,12 @@ find_qemu() {
 
   return 0
 }
+
+load_qemu() {
+  append_to_config_mak SC_QEMU_CFLAGS "$sc_qemu_cflags"
+  append_to_config_mak SC_QEMU_LIBS   "$sc_qemu_libs"
+}
+
+find_qemu && load_qemu
 
 # vim: ts=2 sw=2 sts=0 expandtab

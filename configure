@@ -28,6 +28,10 @@ fi
 
 TMP_C="$CONF_TMPDIR/tmp.c"
 TMP_O="$CONF_TMPDIR/tmp.o"
+
+CONFIG_MAK_VAR=()
+CONFIG_MAK_VAL=()
+
 # ==============
 
 
@@ -46,6 +50,7 @@ Advanced options (experts only):
   --enable-werror                 enable -Werror compile flag
   --enable-sdl-ui                 enable the SDL user interface
   --with-systemc=PATH             specify the SystemC prefix
+  --with-scml=PATH                specify the SCML2 prefix
   --with-qemu-src=PATH            specify the QEMU sources path [$QEMU_SRCS_DIR]
   --with-qemu-git=URL             specify the QEMU git url to be cloned [$(qemu_clone_url)]
   --with-sc-qemu-branch=BRANCH    specify the sc-qemu branch name inside QEMU git [$SC_QEMU_BRANCH]
@@ -58,6 +63,7 @@ parse_cmd() {
         case "$opt" in
           --help) print_help="yes";;
           --with-systemc=*) systemc_prefix="$optarg";;
+          --with-scml=*) scml_prefix="$optarg";;
           --with-qemu-src=*) QEMU_SRCS_DIR="$optarg";;
           --with-qemu-git=*) QEMU_CLONE_URL="$optarg";;
           --with-sc-qemu-branch=*) SC_QEMU_BRANCH="$optarg";;
@@ -115,6 +121,7 @@ QEMU_SRCS_DIR="$SRCS_DIR"/"$QEMU_REL_DIR"
 QEMU_BUILD_DIR="$BUILD_DIR"/"$QEMU_REL_DIR"
 QEMU_CLONE_URL=
 SC_QEMU_BRANCH="sc-qemu"
+CONFIG_LOG="$BUILD_DIR"/"$CONFIG_LOG"
 QEMU_CONFIG_OPTIONS="--disable-debug-tcg --disable-sparse --disable-sdl
                      --disable-gtk --disable-vnc --disable-xen --disable-brlapi --disable-vnc-tls
                      --disable-vnc-sasl --disable-vnc-jpeg --disable-vnc-png --disable-curses
@@ -125,16 +132,7 @@ QEMU_CONFIG_OPTIONS="--disable-debug-tcg --disable-sparse --disable-sdl
                      --disable-usb-redir --disable-guest-agent --disable-cap-ng --disable-libiscsi
                      --disable-libusb --disable-quorum --audio-drv-list= --disable-werror"
 
-# Helper scripts
 source "$SRCS_DIR"/scripts/config-utils
-source "$SRCS_DIR"/scripts/config-systemc
-source "$SRCS_DIR"/scripts/config-gtk
-source "$SRCS_DIR"/scripts/config-sdl
-source "$SRCS_DIR"/scripts/config-libelf
-source "$SRCS_DIR"/scripts/config-qemu
-
-# List of repositories
-source "$SRCS_DIR"/repos.list
 
 print_log_banner $0 $@ >>$CONFIG_LOG
 
@@ -152,11 +150,20 @@ log_info "Detected OS: $target_os"
 guess_arch
 log_info "Detected architecture: $arch"
 
-find_systemc
+# Helper scripts
+for s in systemc gtk sdl ; do
+  [[ -r "$SRCS_DIR"/scripts/config-$s ]] && source "$SRCS_DIR"/scripts/config-$s
+done
+
+# Local configure script
+[[ -r "$SRCS_DIR"/scripts/config.local ]] && source "$SRCS_DIR"/scripts/config.local
+
+# List of repositories
+source "$SRCS_DIR"/repos.list
+
 check_yes $systemc_found "SystemC not found. Please specify the SystemC installation prefix (try '$0 --help')"
 log_info "SystemC found"
 
-find_sdl
 check_yes $sdl_found "sdl was not found. Please install the corresponding devel library"
 log_info "sdl found"
 
@@ -166,7 +173,7 @@ log_info "Found platforms: $(list_platforms <<<"$plist_array")"
 log_info "Enabled platforms: $(list_enabled_platforms <<<"$plist_array")"
 log_info "Enabled iss: $(list_iss <<<"$plist_array")"
 
-find_qemu
+source "$SRCS_DIR"/scripts/config-qemu
 check_yes $qemu_found "QEMU not found or configure failed. Check log"
 
 # Compilation variables
@@ -175,28 +182,17 @@ CFLAGS="$debug_flags $opt_flags $repos_cflags -I$BUILD_DIR $systemc_cflags $extr
 CXXFLAGS="$debug_flags $opt_flags $repos_cflags -I$BUILD_DIR $systemc_cflags $extra_cxxflags -DSC_INCLUDE_DYNAMIC_PROCESSES"
 LDFLAGS="$debug_flags"
 
-SYSTEMC_CFLAGS="$systemc_cflags"
-SYSTEMC_LIBS="$systemc_libs"
-GTK_CFLAGS="$gtk_cflags"
-GTK_LIBS="$gtk_libs"
-SDL_CFLAGS="$sdl_cflags"
-SDL_LIBS="$sdl_libs"
-SC_QEMU_CFLAGS="$sc_qemu_cflags"
-SC_QEMU_LIBS="$sc_qemu_libs"
-
-
 PLATFORMS_LIST="$(list_enabled_platforms <<<"$plist_array")"
 REPOS_SRCS="$(list_repos_srcs)"
 
 # config.mak generation
-echo 'all:' >config.mak
-put_vars SRCS_DIR BUILD_DIR CC CFLAGS \
-    CXX CXXFLAGS LD LDFLAGS QEMU_BUILD_DIR  \
-    PLATFORMS_LIST PLATFORM_CONF_DIR  \
-    ISS_LIST GTK_CFLAGS GTK_LIBS      \
-    SYSTEMC_CFLAGS SYSTEMC_LIBS       \
-    SDL_CFLAGS SDL_LIBS CONFIG_SDL_UI \
-    SC_QEMU_CFLAGS SC_QEMU_LIBS REPOS_SRCS >>config.mak
+append_var_to_config_mak SRCS_DIR BUILD_DIR \
+    CC CFLAGS CXX CXXFLAGS LD LDFLAGS       \
+    QEMU_BUILD_DIR ISS_LIST REPOS_SRCS      \
+    PLATFORMS_LIST PLATFORM_CONF_DIR        \
+    CONFIG_SDL_UI
+
+generate_config_mak >config.mak
 
 conf_h_gen CONFIG_SDL_UI >config.h
 echo '#define __STDC_FORMAT_MACROS' >>config.h
@@ -211,8 +207,10 @@ while IFS='|' read p r iss sta; do
 
     mkdir -p "$p"
     ln -sf "$SRCS_DIR"/scripts/Makefile.platform "$p/Makefile"
-    
-    put_vars PLATFORM PLATFORM_ISS_DIR PLATFORM_ISS PLATFORM_CONF >"$p"/platform-config.mak
+ 
+    append_var_to_config_mak PLATFORM PLATFORM_ISS_DIR PLATFORM_ISS PLATFORM_CONF
+    generate_config_mak >"$p"/platform-config.mak
+
     echo 'LDFLAGS+=$(SC_QEMU_LIBS)' >>"$p"/platform-config.mak
     # For strange SystemC installations
     if test -n "$systemc_prefix"; then
