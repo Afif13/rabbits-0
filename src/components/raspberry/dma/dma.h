@@ -22,9 +22,9 @@
 
 #include <queue>
 
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 
-class rpi_dma: public slave_device
+class rpi_dma: public Slave
 {
 private:
     struct ctrl_blk

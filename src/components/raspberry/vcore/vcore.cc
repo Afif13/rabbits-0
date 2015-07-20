@@ -4,7 +4,7 @@
 #include "utils/utils.h"
 
 rpi_vcore::rpi_vcore(sc_module_name mod_name)
-	: master_device(mod_name)
+	: Master(mod_name)
 	, m_mbox("vcore_mailbox")
 	, m_fb("vcore_framebuffer")
 {
@@ -26,11 +26,11 @@ uint32_t rpi_vcore::arm_to_vcore_addr(uint32_t addr)
 
 void rpi_vcore::bus_read(uint64_t addr, uint8_t *data, unsigned int len)
 {
-    master_device::bus_read(vcore_to_arm_addr(addr), data, len);
+    Master::bus_read(vcore_to_arm_addr(addr), data, len);
 }
 
 void rpi_vcore::bus_write(uint64_t addr, uint8_t *data, unsigned int len)
 {
-    master_device::bus_write(vcore_to_arm_addr(addr), data, len);
+    Master::bus_write(vcore_to_arm_addr(addr), data, len);
 }
 

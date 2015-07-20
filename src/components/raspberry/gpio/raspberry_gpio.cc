@@ -26,7 +26,7 @@
 #include "utils/utils.h"
 
 raspberry_gpio::raspberry_gpio(sc_module_name module_name) :
-        slave_device(module_name)
+        Slave(module_name)
 {
     //SC_THREAD (gpio_thread);
 }

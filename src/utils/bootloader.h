@@ -20,7 +20,7 @@
 #ifndef _UTILS_BOOTLOADER_H
 #define _UTILS_BOOTLOADER_H
 
-#include "components/debug/debug_initiator.h"
+#include "components/rabbits/debug/debug_initiator.h"
 
 #include <vector>
 

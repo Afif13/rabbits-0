@@ -26,8 +26,8 @@
 
 #include <systemc.h>
 
-#include "components/interconnect/interconnect.h"
-#include "components/debug/debug_initiator.h"
+#include "components/rabbits/interconnect.h"
+#include "components/rabbits/debug/debug_initiator.h"
 
 #include "components/qemu_wrapper/qemu_wrapper.h"
 #include "components/qemu_wrapper/cpu/arm.h"
@@ -41,11 +41,11 @@
 #include "components/raspberry/vcore/vcore.h"
 #include "components/raspberry/dma/dma.h"
 
-#include "components/generic_subsystem/generic_subsystem.h"
+#include "components/rabbits/platform.h"
 
 #include "system_init.h"
 
-class Raspberry: public generic_subsystem
+class Raspberry: public Platform
 {
 private:
     /*

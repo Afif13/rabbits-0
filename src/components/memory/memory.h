@@ -20,33 +20,28 @@
 #ifndef _MEM_DEVICE_H_
 #define _MEM_DEVICE_H_
 
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 
-class memory: public slave_device
+class memory: public Slave
 {
-public:
-    memory(const char *_name, uint64_t _size);
-    virtual ~memory();
+protected:
+    uint64_t m_size;
+    uint8_t *m_bytes;
 
-public:
-    virtual unsigned char *get_mem() {
-        return m_bytes;
-    }
-
-    virtual unsigned long get_size() {
-        return m_size;
-    }
-
-private:
     void bus_cb_read(uint64_t addr, uint8_t *data, unsigned int len, bool &bErr);
     void bus_cb_write(uint64_t addr, uint8_t *data, unsigned int len, bool &bErr);
 
     virtual uint64_t debug_read(uint64_t addr, uint8_t *buf, uint64_t size);
     virtual uint64_t debug_write(uint64_t addr, const uint8_t *buf, uint64_t size);
 
-private:
-    uint64_t m_size;
-    uint8_t *m_bytes;
+    virtual bool get_direct_mem_ptr(tlm::tlm_generic_payload& trans, tlm::tlm_dmi& dmi_data);
+
+public:
+    const sc_time MEM_WRITE_LATENCY;
+    const sc_time MEM_READ_LATENCY;
+
+    memory(const char *name, uint64_t size);
+    virtual ~memory();
 };
 
 #endif

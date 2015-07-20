@@ -20,20 +20,27 @@
 #ifndef _SLAVE_DEVICE_H_
 #define _SLAVE_DEVICE_H_
 
-class slave_device;
+class Slave;
 
-#include "components/generic_subsystem/generic_subsystem.h"
+#include "rabbits-common.h"
+#include <tlm>
 
-#include <tlm_utils/simple_target_socket.h>
+#define MODNAME "slave-device"
+#include "utils/utils.h"
 
-class slave_device: public sc_module
+class Slave: public sc_module, public tlm::tlm_fw_transport_if<>
 {
-public:
-    SC_HAS_PROCESS (slave_device);
-    slave_device(sc_module_name module_name);
-    virtual ~slave_device();
+
+private:
+    uint32_t m_node_id;
 
 public:
+    tlm::tlm_target_socket<32> socket;
+
+    SC_HAS_PROCESS (Slave);
+    Slave(sc_module_name module_name);
+    virtual ~Slave();
+
     virtual void bus_cb_read(uint64_t addr, uint8_t *data, unsigned int len, bool &bErr) {
         switch (len) {
         case 1:
@@ -94,30 +101,25 @@ public:
         return 0;
     }
 
-    virtual unsigned char *get_mem() {
-        return NULL;
+    virtual bool get_direct_mem_ptr(tlm::tlm_generic_payload& trans,
+                                    tlm::tlm_dmi& dmi_data)
+    {
+        return false;
     }
 
-    virtual unsigned long get_size() {
-        return 0;
+    virtual tlm::tlm_sync_enum nb_transport_fw(tlm::tlm_generic_payload& trans,
+                                               tlm::tlm_phase& phase,
+                                               sc_core::sc_time& t)
+    {
+        EPRINTF("Non-blocking transport not implemented\n");
+        abort();
+        return tlm::TLM_COMPLETED; 
     }
 
-    tlm_utils::simple_target_socket<slave_device> socket;
-
-private:
     void b_transport(tlm::tlm_generic_payload& trans, sc_time& delay);
     unsigned int transport_dbg(tlm::tlm_generic_payload& trans);
-
-public:
-    bool m_write;
-    bool m_bProcessing_rq;
-    bool m_write_invalidate;
-
-    // invalidation facilities. valid only if m_write_invalidate = true
-    generic_subsystem *m_subsys;
-
-private:
-    uint32_t m_node_id;
 };
+
+#undef MODNAME
 
 #endif

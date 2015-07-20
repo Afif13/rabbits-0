@@ -20,7 +20,7 @@
 #ifndef _raspberry_it_controller_H_
 #define _raspberry_it_controller_H_
 
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 
 /* number of GPU input interrupt port */
 #define IT_CONT_PORT_NB 64
@@ -38,7 +38,7 @@
 #define IT_CONT_DISABLE_IRQ_2       0x20
 #define IT_CONT_DISABLE_BASIC_IRQ   0x24
 
-class raspberry_it_controller: public slave_device
+class raspberry_it_controller: public Slave
 {
 public:
     SC_HAS_PROCESS (raspberry_it_controller);

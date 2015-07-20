@@ -20,7 +20,7 @@
 #ifndef _RASPBERRY_GPIO_H_
 #define _RASPBERRY_GPIO_H_
 
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 
 #define GPFSEL0 0x0
 #define GPFSEL1 0x4
@@ -52,7 +52,7 @@
 #define GPPUDCLK0 0x98
 #define GPPUDCLK1 0x9C
 
-class raspberry_gpio: public slave_device
+class raspberry_gpio: public Slave
 {
 public:
     SC_HAS_PROCESS (raspberry_gpio);

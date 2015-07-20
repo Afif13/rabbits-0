@@ -21,10 +21,13 @@
 #include <cstdio>
 #include <cstdlib>
 
+#define MODNAME "memory"
 #include "utils/utils.h"
 
-memory::memory(const char *_name, uint64_t size)
-    : slave_device(_name)
+memory::memory(const char *name, uint64_t size)
+    : Slave(name)
+    , MEM_WRITE_LATENCY(3, SC_NS)
+    , MEM_READ_LATENCY(3, SC_NS)
 {
     m_size = size;
     m_bytes = new unsigned char[m_size];
@@ -50,7 +53,7 @@ void memory::bus_cb_read(uint64_t addr, uint8_t *data, unsigned int len, bool &b
 
     memcpy(data, m_bytes + addr, len);
 
-    wait(3, SC_NS);
+    wait(MEM_READ_LATENCY);
 }
 
 void memory::bus_cb_write(uint64_t addr, uint8_t *data, unsigned int len, bool &bErr)
@@ -60,7 +63,7 @@ void memory::bus_cb_write(uint64_t addr, uint8_t *data, unsigned int len, bool &
         exit(1);
     }
 
-    wait(1, SC_NS);
+    wait(MEM_WRITE_LATENCY);
 
     memcpy(m_bytes + addr, data, len);
 }
@@ -83,3 +86,19 @@ uint64_t memory::debug_write(uint64_t addr, const uint8_t *buf, uint64_t size)
     return to_write;
 }
 
+bool memory::get_direct_mem_ptr(tlm::tlm_generic_payload& trans,
+                                tlm::tlm_dmi& dmi_data)
+{
+    if (trans.get_address() > m_size) {
+        return false;
+    }
+
+    dmi_data.set_start_address(0);
+    dmi_data.set_end_address(m_size-1);
+    dmi_data.set_dmi_ptr(m_bytes);
+    dmi_data.set_granted_access(tlm::tlm_dmi::DMI_ACCESS_READ_WRITE);
+    dmi_data.set_write_latency(MEM_WRITE_LATENCY);
+    dmi_data.set_read_latency(MEM_READ_LATENCY);
+
+    return true;
+}

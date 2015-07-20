@@ -27,7 +27,7 @@
 #define TIMER_CLOCK_FV 1000000000
 
 raspberry_system_timer::raspberry_system_timer(sc_module_name module_name) :
-        slave_device(module_name)
+        Slave(module_name)
 {
     ns_period = 100;
 

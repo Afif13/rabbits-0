@@ -20,13 +20,13 @@
 #ifndef _RASPBERRY_VCORE_H_
 #define _RASPBERRY_VCORE_H_
 
-#include "components/slave_device/slave_device.h"
-#include "components/master_device/master_device.h"
+#include "components/rabbits/slave.h"
+#include "components/rabbits/master.h"
 
 #include "mailbox.h"
 #include "fb.h"
 
-class rpi_vcore: public master_device
+class rpi_vcore: public Master
 {
 private:
     vcore_mbox m_mbox;

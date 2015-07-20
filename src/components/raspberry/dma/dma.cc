@@ -19,7 +19,7 @@ void rpi_dma::dma_channel::write_reg(int reg, uint32_t v)
 /* === rpi_dma === */
 
 rpi_dma::rpi_dma(sc_module_name modname) :
-        slave_device(modname)
+        Slave(modname)
 {
 
 }

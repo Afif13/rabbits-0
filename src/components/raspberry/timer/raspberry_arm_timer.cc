@@ -29,7 +29,7 @@
 #define TIMER_DIV 10
 
 raspberry_arm_timer::raspberry_arm_timer(sc_module_name module_name) :
-        slave_device(module_name)
+        Slave(module_name)
 {
 
     m_period = 0;

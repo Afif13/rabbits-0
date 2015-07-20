@@ -1,5 +1,5 @@
 #include "rabbits-common.h"
-#include "components/debug/debug_initiator.h"
+#include "components/rabbits/debug/debug_initiator.h"
 
 DebugInitiator::DebugInitiator(sc_module_name n) : sc_module(n)
 {

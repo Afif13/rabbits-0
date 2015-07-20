@@ -27,7 +27,7 @@
 #include "utils/utils.h"
 
 vcore_mbox::vcore_mbox(sc_module_name module_name) :
-        slave_device(module_name)
+        Slave(module_name)
 {
     SC_THREAD(irq_thread);
     m_vcore = NULL;

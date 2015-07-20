@@ -31,7 +31,7 @@
 raspberry_it_controller::raspberry_it_controller(sc_module_name module_name,
         int it_ports, sc_signal<bool>* irq_wires, int* irq_wires_num,
         int it_ap_ports, sc_signal<bool>* irq_ap_wires, int* irq_ap_wires_num) :
-        slave_device(module_name), m_it_ports(it_ports), m_it_ap_ports(
+        Slave(module_name), m_it_ports(it_ports), m_it_ap_ports(
                 it_ap_ports)
 {
     if (it_ports > 0) {

@@ -20,7 +20,7 @@
 #ifndef _raspberry_arm_timer_H_
 #define _raspberry_arm_timer_H_
 
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 
 #define ARM_TIMER_LOAD          0x00
 #define ARM_TIMER_VALUE         0x04
@@ -46,7 +46,7 @@ enum sl_timer_mode
     TIMER_RUNNING = 1, TIMER_IRQ_ENABLED = 2,
 };
 
-class raspberry_arm_timer: public slave_device
+class raspberry_arm_timer: public Slave
 {
 public:
     SC_HAS_PROCESS (raspberry_arm_timer);

@@ -20,7 +20,7 @@
 #ifndef _RASPBERRY_MINIUART_H_
 #define _RASPBERRY_MINIUART_H_
 
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 
 #define READ_BUF_SIZE           256
 
@@ -84,7 +84,7 @@ typedef struct
     int read_trigger;
 } tty_state;
 
-class raspberry_miniuart: public slave_device
+class raspberry_miniuart: public Slave
 {
 public:
     SC_HAS_PROCESS (raspberry_miniuart);

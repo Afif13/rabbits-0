@@ -18,39 +18,25 @@
  */
 
 #include "rabbits-common.h"
-#include "slave_device.h"
+#include "slave.h"
 
-#define MODNAME "slave-device"
+#define MODNAME "slave"
 #include "utils/utils.h"
 
-slave_device::slave_device(sc_module_name module_name)
+Slave::Slave(sc_module_name module_name)
 	: sc_module(module_name)
 {
-	m_write_invalidate = false;
-	m_bProcessing_rq = false;
-	m_write = false;
 	m_node_id = -1;
-	m_subsys = NULL;
 
-	socket.register_b_transport(this, &slave_device::b_transport);
-	socket.register_transport_dbg(this, &slave_device::transport_dbg);
+    socket.bind(*this);
 }
 
-slave_device::~slave_device()
+Slave::~Slave()
 {
 }
 
-void slave_device::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay)
+void Slave::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay)
 {
-	m_write = trans.get_command() == tlm::TLM_WRITE_COMMAND;
-
-	if (m_bProcessing_rq) {
-		fprintf(stdout,
-				"Received a request while processing previous one: drop it\n");
-		return;
-	}
-	m_bProcessing_rq = true;
-
 	bool bErr = false;
 
 	uint64_t addr = trans.get_address();
@@ -65,16 +51,16 @@ void slave_device::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay)
 		bus_cb_read(addr, buf, size, bErr);
 		break;
 	default:
-		cerr << "Unknown command" << endl;
+		EPRINTF("Unknown command\n");
+        abort();
 	}
 
 	// returning synchronous response
 	trans.set_response_status(
 			bErr ? tlm::TLM_GENERIC_ERROR_RESPONSE : tlm::TLM_OK_RESPONSE);
-	m_bProcessing_rq = false;
 }
 
-unsigned int slave_device::transport_dbg(tlm::tlm_generic_payload& trans)
+unsigned int Slave::transport_dbg(tlm::tlm_generic_payload& trans)
 {
 	uint64_t addr = trans.get_address();
 	uint8_t *buf = reinterpret_cast<uint8_t *>(trans.get_data_ptr());

@@ -25,10 +25,13 @@
 
 #include "qemu_lib_wrapper.h"
 #include "dev/qemu_device.h"
-#include "components/master_device/master_device.h"
+#include "components/rabbits/master.h"
+
+#define MODNAME "qemu-wrapper"
+#include "utils/utils.h"
 
 template <class t_cpu>
-class qemu_wrapper: public master_device, public qemu_io_callbacks
+class qemu_wrapper: public Master, public qemu_io_callbacks
 {
 protected:
     qemu_lib_wrapper m_lib;
@@ -64,6 +67,18 @@ protected:
         }
     }
 
+    virtual void dmi_hint_cb(uint64_t start, uint64_t size, void *data,
+                             sc_time read_latency, sc_time write_latency)
+    {
+        if (data != NULL) {
+            DPRINTF("DMI mapping from %" PRIx64 " to %" PRIx64 "\n", start, start+size);
+            add_map_dmi(start, size, data);
+        } else {
+            DPRINTF("I/O mapping from %" PRIx64 " to %" PRIx64 "\n", start, start+size);
+            add_map(start, size);
+        }
+    }
+
 public:
     SC_HAS_PROCESS (qemu_wrapper);
     qemu_wrapper(sc_module_name name, int num_cpus, const char *cpu_model);
@@ -95,7 +110,7 @@ public:
 template <class t_cpu>
 qemu_wrapper<t_cpu>::qemu_wrapper(sc_module_name name,
         int num_cpu, const char *cpu_model)
-        : master_device(name)
+        : Master(name)
         , m_lib(t_cpu::get_iss_lib())
 {
     m_lib.register_io_callback(this);
@@ -131,5 +146,7 @@ qemu_wrapper<t_cpu>::add_map_dmi(uint32_t base_address, uint32_t size, void *dat
 {
     m_lib.map_dmi(base_address, size, data);
 }
+
+#undef MODNAME
 
 #endif

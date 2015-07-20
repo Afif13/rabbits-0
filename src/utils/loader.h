@@ -25,7 +25,7 @@
 #include <sys/mman.h>
 
 #include "rabbits-common.h"
-#include "components/debug/debug_initiator.h"
+#include "components/rabbits/debug/debug_initiator.h"
 
 #define MODNAME "loader"
 #include "utils/utils.h"

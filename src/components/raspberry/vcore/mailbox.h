@@ -22,7 +22,7 @@
 
 #include <queue>
 
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 
 #define MAIL0_READ 0x0
 #define MAIL0_PEAK 0x10
@@ -33,7 +33,7 @@
 
 class rpi_vcore;
 
-class vcore_mbox: public slave_device
+class vcore_mbox: public Slave
 {
 private:
     sc_event irq_update;

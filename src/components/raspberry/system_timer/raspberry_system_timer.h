@@ -20,7 +20,7 @@
 #ifndef _RASPBERRY_SYSTEM_TIMER_H_
 #define _RASPBERRY_SYSTEM_TIMER_H_
 
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 
 #define TIMER_CS        0x0
 #define TIMER_CLO       0x4
@@ -30,7 +30,7 @@
 #define TIMER_CMP2      0x14
 #define TIMER_CMP3      0x18
 
-class raspberry_system_timer: public slave_device
+class raspberry_system_timer: public Slave
 {
 public:
     SC_HAS_PROCESS (raspberry_system_timer);

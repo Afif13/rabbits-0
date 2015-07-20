@@ -10,7 +10,7 @@
 
 
 Raspberry::Raspberry(sc_module_name _name, init_struct *cfg) :
-        generic_subsystem(_name)
+        Platform(_name)
 {
     m_qemu = new qemu_wrapper<qemu_cpu_arm>("QEMU", 1, "arm1176");
 
@@ -69,15 +69,6 @@ Raspberry::Raspberry(sc_module_name _name, init_struct *cfg) :
     connect_initiator(m_vcore);
     connect_initiator<DebugInitiator>(&m_dbg_initiator->socket);
 
-    for(unsigned int i=0; i<m_onoc->m_ranges.size(); i++) {
-        interconnect::AddressRange *range = m_onoc->m_ranges[i];
-        if(range->begin == 0) {
-            m_qemu->add_map_dmi(range->begin, range->end - range->begin, m_ram->get_mem());
-        } else {
-            m_qemu->add_map(range->begin, range->end - range->begin);
-        }
-    }
-
     load_bootloader(cfg);
 }
 
@@ -122,5 +113,5 @@ void Raspberry::load_bootloader(init_struct *cfg)
 
 void Raspberry::end_of_elaboration() 
 {
-
+    Platform::end_of_elaboration();
 }

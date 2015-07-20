@@ -21,7 +21,7 @@
 #define _RASPBERRY_VCORE_FB_H_
 
 #include <inttypes.h>
-#include "components/slave_device/slave_device.h"
+#include "components/rabbits/slave.h"
 #include "ui/ui_fb.h"
 
 class rpi_vcore;
