@@ -46,6 +46,15 @@ public:
 
     uint32_t vcore_to_arm_addr(uint32_t addr);
     uint32_t arm_to_vcore_addr(uint32_t addr);
+
+    virtual void dmi_hint_cb(uint64_t start, uint64_t size, void *data,
+            sc_time read_latency, sc_time write_latency)
+    {
+        if(start == 0) {
+            DPRINTF("found memory backdoor, addr=%p\n", data);
+            m_fb.mem_backdoor = data;
+        }
+    }
 };
 
 #endif

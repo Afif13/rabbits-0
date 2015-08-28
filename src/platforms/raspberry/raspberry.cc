@@ -24,13 +24,10 @@ Raspberry::Raspberry(sc_module_name _name, init_struct *cfg) :
     m_dma = new rpi_dma("rpi-dma");
     m_dbg_initiator = new DebugInitiator("dbg-initiator");
 
-    /* XXX Tmp */
-    m_vcore->get_fb()->mem_backdoor = (void*) m_ram->get_mem();
-
-    connect_target(m_ram, 0x00000000ul, RAMSIZE);  // 0
-    connect_target(m_tty, 0x20201000ul, 0x1000);  // 1
-    connect_target(m_systimer, 0x20003000UL, 0x1c ); // 2
-    connect_target(m_armtimer, 0x2000B400UL, 0x24); // 3
+    connect_target(m_ram, 0x00000000ul, RAMSIZE);
+    connect_target(m_tty, 0x20201000ul, 0x1000);
+    connect_target(m_systimer, 0x20003000UL, 0x1c );
+    connect_target(m_armtimer, 0x2000B400UL, 0x24);
 
     /* Current mapping:
      *
@@ -53,11 +50,11 @@ Raspberry::Raspberry(sc_module_name _name, init_struct *cfg) :
 
     m_it_cont = new raspberry_it_controller("IT_CONT", 2, it_map, it_numbers, 2,
             it_ap_map, it_ap_numbers);
-    connect_target(m_it_cont, 0x2000b200UL, 0x200);           // 4
+    connect_target(m_it_cont, 0x2000b200UL, 0x200);
 
-    connect_target(m_gpio, 0x20200000UL, 0xB4); // 5
-    connect_target(m_vcore->get_mbox(), 0x2000b880UL, 0x24); // 6
-    connect_target(m_dma, 0x20007000UL, 0xff4); // 8
+    connect_target(m_gpio, 0x20200000UL, 0xB4);
+    connect_target(m_vcore->get_mbox(), 0x2000b880UL, 0x24);
+    connect_target(m_dma, 0x20007000UL, 0xff4);
 
     //masters
 
@@ -67,7 +64,7 @@ Raspberry::Raspberry(sc_module_name _name, init_struct *cfg) :
 
     connect_initiator(m_qemu);
     connect_initiator(m_vcore);
-    connect_initiator<DebugInitiator>(&m_dbg_initiator->socket);
+    connect_initiator(&m_dbg_initiator->socket);
 
     load_bootloader(cfg);
 }
@@ -95,9 +92,9 @@ void Raspberry::load_bootloader(init_struct *cfg)
     bootloader.set_kernel_load_addr(0x8000);
 
     if (cfg->dtb_filename) {
-	    bootloader.set_dtb(cfg->dtb_filename);
-	    bootloader.set_dtb_load_addr(0x100);
-	    bootloader.set_machine_id(0xffffffff);
+        bootloader.set_dtb(cfg->dtb_filename);
+        bootloader.set_dtb_load_addr(0x100);
+        bootloader.set_machine_id(0xffffffff);
     } else {
         bootloader.set_machine_id(MACHINE_ID);
     }

@@ -67,8 +67,7 @@ public:
     uint32_t get_base_addr() const;
     uint32_t get_size() const;
 
-    /* XXX: Tmp */
-    void * mem_backdoor;
+    void *mem_backdoor;
 };
 
 #endif
